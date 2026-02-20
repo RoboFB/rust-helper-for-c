@@ -1,7 +1,57 @@
 use std::io;
+use rand::Rng;
 
-fn main() {
-    println!("Hello, world!");
+use std::env;
+use std::fs;
+
+/* 
+a small to to update the makefile with all the .c files in the src directory:
+
+
+
+*/
+
+
+
+fn main() -> std::io::Result<()>
+{
+	let args: Vec<String> = env::args().collect();
+	
+
+	if args.len() > 1
+	{
+		println!("I HAVE ARGS NOICE!");
+	}
+	else
+	{
+		println!("Hello, world!");
+	}
+
+	let makefile_opt = fs::read_to_string("./Makefile")?;
+	
+	// println!("Makefile content:\n{}", makefile_opt);
+
+	let ma = makefile_opt.matches("SRC :=");
+
+	for line 
+	println!("Matches for SRC: {}", ma.);
+
+	Ok(())
+}
+	
+
+
+#[allow(dead_code)]
+fn random_test() -> i32
+{
+	rand::thread_rng().gen_range(1..=100)
+}
+
+#[allow(dead_code)]
+fn old_testings()
+{
+
+	println!("Hello, world!");
 
 	let mut guess = String::new();
 
@@ -13,13 +63,8 @@ fn main() {
 	let without_newline: &str = &guess[0..len-1];
 	println!("You guessed: {}, length: {}", without_newline, len);
 
-	// let mut x: i32 = 5;
-	// let & y = x;
 
-	// println!("bob:{x},{y}");
-	
-	// x=10;
-	// // y=99;
+	let what = random_test();
 
-	// println!("bob:{x},{y}");
+	println!("bla bla {what}");
 }
