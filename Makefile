@@ -6,7 +6,7 @@
 #    By: rgohrig <rgohrig@student.42heilbronn.de>   +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2026/01/26 11:27:55 by rgohrig           #+#    #+#              #
-#    Updated: 2026/02/13 20:08:13 by rgohrig          ###   ########.fr        #
+#    Updated: 2026/02/23 18:42:37 by rgohrig          ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -32,8 +32,16 @@ LIBMLX_FLAGS :=		-ldl -lglfw -pthread -lm
 # -ffast -flto ARE LINKER FLAGS
 
 DIR_SRC :=		src
-SRC :=			$(patsubst $(DIR_SRC)/%,%,$(shell find $(DIR_SRC) -type f -name "*.c")) # TODO: at end fix
-
+SRC :=			advanced_test.c color_test/color_ray.c color_test/draw_pixel.c \
+				color_test/full_img.c color_test/materials.c execution_test/error.c \
+				execution_test/file_handeling.c execution_test/free_data.c \
+				execution_test/hooks.c execution_test/init_gui.c \
+				execution_test/init_scene.c execution_test/main.c \
+				execution_test/print_debug.c execution_test/render.c \
+				execution_test/statistics.c execution_test/time.c intervals_test.c \
+				vectors_math_test/basic.c vectors_math_test/basic_pointer.c \
+				vectors_math_test/combine.c vectors_math_test/compare.c \
+				vectors_math_test/convert_to.c 
 
 DIR_OBJ :=		obj
 OBJ :=			$(SRC:%.c=$(DIR_OBJ)/%.o)
