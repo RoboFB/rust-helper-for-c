@@ -9,14 +9,23 @@ a small to to update the makefile with all the .c files in the src directory:
 
 
 fn read_makefile(open: &Path) -> Result<String, std::io::Error> {
-	fs::read_to_string(open)
+	match fs::read_to_string(open)
+	{
+		Ok(content) => Ok(content),
+		Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(String::from("SRC :=")),
+		Err(e) => Err(e)
+	}
 }
 
-fn get_dir_src_path(makefile: &str) -> Option<&str> {
+fn write_makefile(open: &Path, content: &str) -> Result<(), std::io::Error> {
+	fs::write(open, content)
+}
+
+fn get_dir_src_path<'a>(makefile: &'a str, prefix: &str) -> Option<&'a str> {
 	Some(makefile
 		.lines()
-		.find(|l| l.starts_with("DIR_SRC :="))?
-		.strip_prefix("DIR_SRC :=")?
+		.find(|l| l.starts_with(prefix))?
+		.strip_prefix(prefix)?
 		.trim())
 }
 
@@ -37,23 +46,31 @@ fn collect_c_files(dir: &Path, out: &mut Vec<String>) -> io::Result<()> {
 }
 
 
-fn get_stuff(open: &Path) -> Result<String, Box<dyn std::error::Error>> {
-	
-	let makefile: String = read_makefile(open)?;
-	let dir_src_path = get_dir_src_path(&makefile)
-								.ok_or("no DIR_SRC path found")?;
+fn find_unescaped_newline(s: &str) -> usize {
+	let bytes = s.as_bytes();
+	for i in 0..bytes.len() -1 {
+		if bytes[i] != b'\\' && bytes[i + 1] == b'\n' {
+			return i + 1;
+		}
+	}
+	bytes.len()
+}
 
-	let mut files = Vec::new();
-	collect_c_files(Path::new(dir_src_path), &mut files)?;
-	files.sort();
+fn find_line_start(s: &str, prefix: &str) -> Option<usize> {
+	s.match_indices('\n')
+		.map(|(i, _)| i + 1)
+		.chain(std::iter::once(0))
+		.find(|&i| s[i..].starts_with(prefix))
+}
 
-
-	// let mut nice_lock = files.join(" ");
+fn convert_to_combined_string(files: Vec<String>, dir_src_path: &str) -> String
+{
 	let mut all: String = String::new();
 	let mut line = String::from("SRC :=\t\t\t");
 
-	for f_1 in files {
-		let f = f_1.strip_prefix("src/").unwrap_or(&f_1);
+	for f in files {
+		let mut f = f.strip_prefix(dir_src_path).unwrap_or(&f);
+		f = f.strip_prefix("/").unwrap_or(&f);
 		if line.len() + f.len() + 1 > 80 {
 			all.push_str(&line);
 			all.push_str("\\\n");
@@ -63,49 +80,43 @@ fn get_stuff(open: &Path) -> Result<String, Box<dyn std::error::Error>> {
 		line.push_str(" ");
 	}
 	all.push_str(&line);
-	all.strip_suffix(" \\\n").unwrap_or(&all);
-	all.push('\n');
-	
+	all.pop();
+	all
+}
+
+fn get_new_part(makefile: &str) -> Result<String, Box<dyn std::error::Error>>
+{
+	let dir_src_path = get_dir_src_path(&makefile, "DIR_SRC :=")
+							.unwrap_or("src");
+
+	let mut files = Vec::new();
+	collect_c_files(Path::new(dir_src_path), &mut files)?;
+	files.sort();
+	Ok(convert_to_combined_string(files, dir_src_path))
+}
 
 
-	let at = makefile.find("\nSRC :=").expect("needs SRC :=") + 1;
+fn modify_makefile(makefile: &mut String) -> Result<(), Box<dyn std::error::Error>>
+{
+	let all = get_new_part(makefile)?;
 
-	let mut new_makefile = makefile[..at].to_string();
-	new_makefile.push_str(&all);
-	let rest = makefile[at..].lines();
-	let mut found_end = false;
-	for i in rest {
-		if found_end {
-			new_makefile.push_str(i);
-			new_makefile.push('\n');
-		} else if !i.trim_end().ends_with("\\") {
-			found_end = true;
-		}
-	}
-	
-	
-	Ok(new_makefile)
+	let start = find_line_start(makefile,"SRC :=").ok_or("no SRC := at line start")?;
+	let end = start + find_unescaped_newline(&makefile[start..]);
+	makefile.replace_range(start..end, &all);
+	Ok(())
 }
 
 
 
-fn main()
+fn main() -> Result<(), Box<dyn std::error::Error>>
 {
-	// let args: Vec<String> = env::args().collect();
-	
 
-	// if args.len() > 1
-	// {
-	// 	println!("I HAVE ARGS NOICE!");
-	// }
-	// else
-	// {
-	// 	println!("Hello, world!");
-	// }
-	
 	let makefile_path = Path::new("./Makefile");
 
-	let new_makefile = get_stuff(makefile_path).unwrap();
-	fs::write(makefile_path, new_makefile).unwrap();
-	
+	let mut makefile: String = read_makefile(makefile_path)?;
+
+	modify_makefile(&mut makefile)?;
+
+	write_makefile(makefile_path, &makefile)?;
+	Ok(())
 }
