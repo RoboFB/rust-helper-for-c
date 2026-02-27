@@ -1,4 +1,5 @@
 use std::ffi::OsStr;
+use std::process::Command;
 use std::{fs, io};
 use std::path::{Path, PathBuf};
 use regex::Regex;
@@ -105,15 +106,27 @@ fn modify_makefile(makefile: &mut String, all_files: &Vec<PathBuf>, dir_src_path
 
 fn function_defs(all_files: &Vec<PathBuf>) -> String {
 	
-	let s = all_files.iter()
+	// let magic = Regex::new(r"^(static\s*|const\s*)*[\w]+([\*\s])+\w+\([^\)]*\)\s*\{").unwrap();
+	let magic = Regex::new(r"(static\s*|const\s*)*[\w]+([\*\s])+\w+\([^\)]*\)\s*\{").unwrap();
+
+
+	let c_files_conntet = all_files.iter()
 		.map(|f | fs::read_to_string(f)).collect::<Result<Vec<String>, _>>().unwrap().join("\n");
-	let _ = fs::write("test.txt", s);
-	print!("all_files: {:?}", all_files);
-	panic!()
 	
+	let found_regex_lines = magic.find_iter(&c_files_conntet);
+	let mut all_matches = String::new();
+	for i in found_regex_lines {
+		let i = i.as_str();
+		if i.contains("static") || i.contains("main") {
+			continue;}
+		all_matches.push_str(i);
+		all_matches =all_matches.replace("\n{", ";\n");
+	}
+	// print!("all_files: {:#?}\n", all_files);
+	all_matches
 }
 
-fn modify_header(header: &mut String, all_files: &Vec<PathBuf>, heder_file_name: &str) -> Result<(), Box<dyn std::error::Error>>
+fn modify_header(header: &mut String, all_files: &Vec<PathBuf>) -> Result<(), Box<dyn std::error::Error>>
 {
 	// regex for finding in the header file but not needed
 	// let def = Regex::new(r"[\w]+\t+\**\w+\([\w\s,\*\[\]]*\);\n").unwrap();
@@ -121,13 +134,12 @@ fn modify_header(header: &mut String, all_files: &Vec<PathBuf>, heder_file_name:
     // *header = def.replace_all(header, "").to_string();
 
 	// start
-	let start = header.find("// start").ok_or("no '// start' found")? + "// start".len() + 2;
-	let end = header.find("// end").ok_or("no '// end' found")? - 2;
+	let start = header.find("// start\n").ok_or("no '// start\\n' found")? + "// start\n".len();
+	let end = header.find("// end\n").ok_or("no '// end\\n' found")?;
 
 	let new_part = function_defs(all_files);
 	header.replace_range(start..end, &new_part);
 
-	
 
 
 
@@ -173,13 +185,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>>
 
 	write_makefile(makefile_path, &makefile)?;
 
-	let heder_file_name = "function_definitions.h";
-	let heder_file_path = concat!("include/", "function_definitions.h");
+	let heder_file_path = "include/function_definitions.h";
 	let mut header = fs::read_to_string(heder_file_path)?;
 
-	modify_header(&mut header, all_files, heder_file_name)?;
+	modify_header(&mut header, all_files)?;
 
 	fs::write(heder_file_path, &header)?;
+	
+	Command::new("c_formatter_42").arg(heder_file_path).output()?;
+	
 
 	Ok(())
 }
