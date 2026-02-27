@@ -32,11 +32,7 @@ LIBMLX_FLAGS :=		-ldl -lglfw -pthread -lm
 # -ffast -flto ARE LINKER FLAGS
 
 DIR_SRC :=		src
-SRC :=			color/color_ray.c color/draw_pixel.c color/full_img.c \
-				color/materials.c execution/error.c execution/file_handeling.c \
-				execution/free_data.c execution/hooks.c execution/init_gui.c \
-				execution/init_scene.c execution/main.c execution/print_debug.c \
-				execution/render.c execution/statistics.c execution/time.c globals.c
+SRC :=		
 DIR_OBJ :=		obj
 OBJ :=			$(SRC:%.c=$(DIR_OBJ)/%.o)
 
