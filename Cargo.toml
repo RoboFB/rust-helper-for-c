@@ -1,5 +1,5 @@
 [package]
-name = "first_rust"
+name = "rust-helper-for-c"
 version = "0.1.0"
 edition = "2024"
 
