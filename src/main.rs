@@ -45,6 +45,13 @@ fn get_c_files_list(dir_src_path: &str) -> Result<Vec<PathBuf>, Box<dyn std::err
     Ok(files)
 }
 
+fn are_files_equal(path1: &str, path2: &str) -> std::io::Result<bool> {
+    let content1 = fs::read(path1)?;
+    let content2 = fs::read(path2)?;
+    
+    Ok(content1 == content2)
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let makefile_path: &Path = Path::new("./Makefile");
 
@@ -60,15 +67,26 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     fs::write(makefile_path, &makefile_str)?;
 
     let heder_file_path = "include/function_definitions.h";
+    let heder_file_path_tmp = "include/function_definitions_tmp.h";
     let mut header = fs::read_to_string(heder_file_path)?;
 
     headerfile::modify_header(&mut header, all_files)?;
 
-    fs::write(heder_file_path, &header)?;
+    fs::write(heder_file_path_tmp, &header)?;
+	
+	Command::new("c_formatter_42")
+		.arg(heder_file_path_tmp)
+		.output()?;
 
-    Command::new("c_formatter_42")
-        .arg(heder_file_path)
-        .output()?;
+	if are_files_equal(heder_file_path, heder_file_path_tmp)? {
+		fs::remove_file(heder_file_path_tmp)?;
+	} else {
+		fs::rename(heder_file_path_tmp, heder_file_path)?;
+	}
+
+
+
+
 
     Ok(())
 }
