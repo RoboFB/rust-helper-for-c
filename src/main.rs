@@ -31,7 +31,7 @@ fn collect_c_files(dir: &Path, out: &mut Vec<PathBuf>) -> io::Result<()> {
 
         if path.is_dir() {
             collect_c_files(&path, out)?;
-        } else if path.extension() == Some(OsStr::new("c")) {
+        } else if path.extension() == Some(OsStr::new("c")) || path.extension() == Some(OsStr::new("cpp")) {
             out.push(path);
         }
     }
